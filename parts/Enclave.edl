@@ -1,0 +1,16 @@
+enclave {
+    trusted {
+        /* define ECALLs here. */
+/* */
+        public int constructor(unsigned int id, unsigned int aid, [user_check]void *aargs_p);
+        public int dispatcher(unsigned long int a, char b);
+    };
+
+    untrusted {
+        /* define OCALLs here. */
+        void ocall_print([in, string]const char* str);
+	void ocall_syncfs(int fd);
+	void ocall_usleep(int usec);
+	void ocall_exit(int ret);
+    };
+};

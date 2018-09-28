@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+      [C][E]
+ping: [0][1]
+pong: [2][2]
+-->
+<data>
+
+<actors>
+    <actor>
+	<id>0</id>
+	<name>aping</name>
+    </actor>
+    <actor>
+	<id>1</id>
+	<name>apong</name>
+    </actor>
+</actors>
+
+<servers>
+    <server>
+	<ip>localhost</ip>
+	<workers>
+		<worker>
+			<id>0</id>
+			<cpus>
+				<cpu>0</cpu>
+			</cpus>
+			<enclave>
+				<id>1</id>
+				<actors>
+					<actor>aping</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>1</id>
+			<cpus>
+				<cpu>1</cpu>
+			</cpus>
+			<enclave>
+				<id>2</id>
+				<actors>
+					<actor>apong</actor>
+				</actors>
+			</enclave>
+		</worker>
+	</workers>
+    </server>
+
+</servers>
+
+</data>

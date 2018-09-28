@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+       [C][E]
+first: [0][1]
+keep1: [2][2]
+keep2: [4][3]
+keep3: [6][4]
+keep4: [1][5]
+keep5: [3][6]
+keep6: [5][7]
+-->
+<data>
+
+<actors>
+    <actor>
+	<id>0</id>
+	<name>first</name>
+    </actor>
+    <actor>
+	<id>1</id>
+	<name>keeper1</name>
+    </actor>
+    <actor>
+	<id>2</id>
+	<name>keeper2</name>
+    </actor>
+    <actor>
+	<id>3</id>
+	<name>keeper3</name>
+    </actor>
+    <actor>
+	<id>4</id>
+	<name>keeper4</name>
+    </actor>
+    <actor>
+	<id>5</id>
+	<name>keeper5</name>
+    </actor>
+    <actor>
+	<id>6</id>
+	<name>keeper6</name>
+    </actor>
+</actors>
+
+<servers>
+    <server>
+	<ip>localhost</ip>
+	<workers>
+		<worker>
+			<id>0</id>
+			<cpus>
+				<cpu>0</cpu>
+			</cpus>
+			<enclave>
+				<id>1</id>
+				<actors>
+					<actor>first</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>1</id>
+			<cpus>
+				<cpu>2</cpu>
+			</cpus>
+			<enclave>
+				<id>2</id>
+				<actors>
+					<actor>keeper1</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>2</id>
+			<cpus>
+				<cpu>4</cpu>
+			</cpus>
+			<enclave>
+				<id>3</id>
+				<actors>
+					<actor>keeper2</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>3</id>
+			<cpus>
+				<cpu>6</cpu>
+			</cpus>
+			<enclave>
+				<id>4</id>
+				<actors>
+					<actor>keeper3</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>4</id>
+			<cpus>
+				<cpu>1</cpu>
+			</cpus>
+			<enclave>
+				<id>5</id>
+				<actors>
+					<actor>keeper4</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>5</id>
+			<cpus>
+				<cpu>3</cpu>
+			</cpus>
+			<enclave>
+				<id>6</id>
+				<actors>
+					<actor>keeper5</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+		<worker>
+			<id>6</id>
+			<cpus>
+				<cpu>5</cpu>
+			</cpus>
+			<enclave>
+				<id>7</id>
+				<actors>
+					<actor>keeper6</actor>
+				</actors>
+			</enclave>
+		</worker>
+
+	</workers>
+    </server>
+
+</servers>
+
+</data>
