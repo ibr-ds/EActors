@@ -18,6 +18,8 @@ Compared to other monolithic frameworks (SCONE, Haven, Graphene-SGX, Panoply, et
 
 ### Cite the work: 
 
+The original paper is avaliable [here](https://www.ibr.cs.tu-bs.de/users/sartakov/papers/sartakov18stanlite.pdf)
+
 ```
 @inproceedings{sartakov18eactors,
     author = {Sartakov, Vasily A. and Stefan Brenner and Sonia Ben Mokhtar and Sara Bouchenak and Ga{\"e}l Thomas and R{\"u}diger Kapitza},
