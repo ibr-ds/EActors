@@ -61,40 +61,40 @@ The framework also generates  Makefiles and run.sh inside the target folder. You
 
 ### Messaging 
 
-    Nodes: memory chunks with a header and a payload. Nodes are allocated by the framework.
-    Queues: double-linked lists on top of the Hardware-Lock Elision
-    API: (Push/pop)-(back/front)
-    MBOXes: API-based FIFOs for messaging
-    POOLs: API-based LIFOs for empty messages
-    Connectors: High-level communication interfaces which hide the implementation of difference between cross/within encrypted/non-encrypted communications. For enclaved actors only (fixable)
-    Cargos: compound objects produced by connectors. Used in 1-1 messaging. 
+* Nodes: memory chunks with a header and a payload. Nodes are allocated by the framework.
+* Queues: double-linked lists on top of the Hardware-Lock Elision
+* API: (Push/pop)-(back/front)
+* MBOXes: API-based FIFOs for messaging
+* POOLs: API-based LIFOs for empty messages
+* Connectors: High-level communication interfaces which hide the implementation of difference between cross/within encrypted/non-encrypted communications. For enclaved actors only (fixable)
+* Cargos: compound objects produced by connectors. Used in 1-1 messaging. 
 
 ### Encrypted cargos and connectors
 
 The framework supports three encryption scheme for messages (GCM, CTR and MEMCPY) and two key-exchange procedures (SEAL and LARSA).
 
 #### GCM
-    Full-fledged AES Galois/Counter Mode. Both sides increment IV on each package.
+Full-fledged AES Galois/Counter Mode. Both sides increment IV on each package.
 
 #### CTR
-    AES Counter Mode. Counters are random but fixed. Used as deterministic encryption in the deprecated POS. Can be used in messaging on your own security risks. Approximately 30% faster compared to GCM.
+AES Counter Mode. Counters are random but fixed. Used as deterministic encryption in the deprecated POS. Can be used in messaging on your own security risks. Approximately 30% faster compared to GCM.
 
 #### MEMCPY 
-    For testing purposes only. memcpy instead of encryption 
+For testing purposes only. memcpy instead of encryption 
 
 #### SEAL
-    Both sides use sealing for data exchange. Should be considered as vulnerable scheme, because an intruder can unseal all messages (and get an access to all encryption keys) is they gets full access to an enclave.
+Both sides use SEALing for data exchange. Should be considered as vulnerable scheme, because an intruder can unseal all messages (and get an access to all encryption keys) is they gets full access to an enclave.
 
 #### LARSA
-    Local attestation with RSA. Combines two procedures: Local attestation is used to attest the slave enclave and send RSA key. Then this key is used to transfer encryption context for the future encryption of the traffic (GCM for example). The most secure approach.
+Local Attestation with RSA. Combines two procedures: Local attestation is used to attest the slave enclave and send RSA key. Then this key is used to transfer encryption context for the future encryption of the traffic (GCM for example). The most secure approach.
 
 ### Networking 
 
-    The framework uses system actors for networking. systhreads_factory.cxx contains the FACTORY actor which spawns network actors via requests. Network actors use mboxes for communications and can transparently stitch mboxes over a network.
+The framework uses system actors for networking. systhreads_factory.cxx contains the FACTORY actor which spawns network actors via requests. Network actors use mboxes for communications and can transparently stitch mboxes over a network.
 
 ### Storage
 
-    The POS is deprecated and will be redeveloped. 
+The POS is deprecated and will be redeveloped. 
 
 ### Examples
 
