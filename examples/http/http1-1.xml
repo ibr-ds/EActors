@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+		[ C ][E]
+connector:	[0-1][1]
+server:	[0-1][2]
+-->
+
+<data>
+
+<actors>
+    <actor>
+	<id>0</id>
+	<name>connector</name>
+    </actor>
+    <actor>
+	<id>1</id>
+	<name>server</name>
+    </actor>
+</actors>
+
+<servers>
+    <server>
+	<ip>localhost</ip>
+	<workers>
+	    <worker>
+		<id>0</id>
+		<cpus>
+		    <cpu>0</cpu>
+		</cpus>
+		<enclave>
+		    <id>1</id>
+		    <actors>
+			<actor>connector</actor>
+		    </actors>
+		</enclave>
+	    </worker>
+
+	    <worker>
+		<id>1</id>
+		<cpus>
+		    <cpu>1</cpu>
+		</cpus>
+		<enclave>
+		    <id>2</id>
+		    <actors>
+			<actor>server</actor>
+		    </actors>
+		</enclave>
+	    </worker>
+	</workers>
+    </server>
+</servers>
+</data>

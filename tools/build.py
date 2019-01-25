@@ -76,7 +76,7 @@ for servers in root.findall("servers"):
 		    cpu_mask=cpu_mask+(1<<int(cpu.text))
 		    icpus.append(cpu.text)
 
-	    #print "workers[",iid,"].cpu_mask =",cpu_mask,";"
+		print "workers[",iid,"].cpu_mask =",cpu_mask,";"
 		iworkers_cxx.write("\tworkers["+iid+"].cpus_mask = "+str(cpu_mask)+";\n")
 
 		enclave_mask = 0
@@ -96,10 +96,10 @@ for servers in root.findall("servers"):
 
 		    g_e_mask[int(ienclave)] = g_e_mask[int(ienclave)] | actor_mask
 
-##	    print "workers[",iid,"].actors_mask[",ienclave,"] =",actor_mask,";"
+		    print "workers[",iid,"].actors_mask[",ienclave,"] =",actor_mask,";"
 		    iworkers_cxx.write("\tworkers["+iid+"].actors_mask["+ienclave+"] = "+str(actor_mask)+";\n")
 
-##	print "workers[",iid,"].enclaves_mask =",enclave_mask,";"
+		print "workers[",iid,"].enclaves_mask =",enclave_mask,";"
 		iworkers_cxx.write("\tworkers["+iid+"].enclaves_mask = "+str(enclave_mask)+";\n\n")
 	iworkers_cxx.write("}\n")
 	iworkers_cxx.write("\n#endif\n")
@@ -109,27 +109,69 @@ for servers in root.findall("servers"):
 	config_h.write("#ifndef CONFIG_H\n")
 	config_h.write("#define CONFIG_H\n\n")
 	config_h.write("#define MAX_NODES	50000\n")
-	config_h.write("#define MAX_SOCKETS	10\n")
-	config_h.write("#define MAX_GBOXES	(800+200)\n")
+	config_h.write("#define MAX_SOCKETS	20\n")
+	config_h.write("#define MAX_GBOXES	(50+200)\n")
+	config_h.write("#define MAX_DYN_ENCLAVES	10\n")
+	config_h.write("#define MAX_DYN_WORKERS		20\n")
 
 	config_h.write("#define TCP_PORT\t"+args.port+"\n")
-	config_h.write("#define PRIVATE_STORE_SIZE	(BLOCK_SIZE*4)\n")
+	config_h.write("#define PRIVATE_STORE_SIZE	(BLOCK_SIZE*4)\n") #should be even divisable by 128
 
 	config_h.write("#define MAX_ENCLAVES\t"+str(len(set(genclaves)))+"\n")
+
 	config_h.write("#define MAX_WORKERS\t"+str(len(set(gworkers)))+"\n")
 	config_h.write("#define MAX_ACTORS\t"+str(len(set(adict)))+"\n")
 	config_h.write("\n#endif\n")
 	config_h.close()
 
-#storage file
-	with open("build/"+p_name+"/"+iip+"/storage", "wb") as out:
-	    out.truncate(100 * 1024 * 1024)
+#eos file
+	with open("build/"+p_name+"/"+iip+"/eos", "wb") as out:
+	    out.truncate(50 * 1024 * 1024)
 #generated and cfg-based
-	os.symlink("../../../../examples/"+p_name+"/"+base, "build/"+p_name+"/"+iip+"/App/payload.c")
 	os.symlink("../../../../"+args.sys, "build/"+p_name+"/"+iip+"/App/systhreads.cxx")
+	os.symlink("../../../../examples/"+p_name+"/"+base, "build/"+p_name+"/"+iip+"/App/payload.c")
+	inc_mk = open("build/"+p_name+"/"+iip+"/App/inc.mk", 'w')
+	inc_mk.write("#GENERATED\n")
+	if os.path.isfile("examples/"+p_name+"/extras.cfg"):
+	    extras = open("examples/"+p_name+"/extras.cfg", 'r')
+	    content = extras.readlines()
+	    content = [x.strip() for x in content] 
+#todo -- something better than just indexes
+	    c_files = content[0].split(' = ')
+	    if len(c_files) > 1:
+		c_files = c_files[1]
+		for fname in c_files.split(" "):
+		    os.symlink("../../../../examples/"+p_name+"/"+fname, "build/"+p_name+"/"+iip+"/App/"+fname)
+	    else:
+		c_files = ""
+
+	    h_files = content[1].split(' = ')
+	    if len(h_files) > 1:
+		h_files = h_files[1]
+		for fname in h_files.split(" "):
+		    os.symlink("../../../../examples/"+p_name+"/"+fname, "build/"+p_name+"/"+iip+"/App/"+fname)
+
+	    a_files = content[2].split(' = ')
+	    if len (a_files) > 1:
+		a_files = a_files[1]
+	    else:
+		a_files = ""
+
+	    inc_mk.write("Inc_libs +="+a_files+"\n")
+	    inc_mk.write("Inc_objs +="+c_files.replace(".c", ".o")+"\n")
+	inc_mk.close()
 
 	make_h = open("build/"+p_name+"/"+iip+"/run.sh", 'w')
 	make_h.write("if ! make -C App; then echo build error, abort; exit; fi\n\n")
+
+	enclave_cfg_h = open("build/"+p_name+"/"+iip+"/App/enclave_cfg.h", 'w')
+	enclave_cfg_h.write("//GENERATED\n")
+	enclave_cfg_h.write("#ifndef ENCLAVE_CFG_H\n")
+	enclave_cfg_h.write("#define ENCLAVE_CFG_H\n\n")
+	enclave_cfg_h.write("#define ENCLAVE_ID		"+str(0)+"\n")
+	enclave_cfg_h.write("#define ACTORS_MASK	("+str(g_e_mask[0])+"ULL)\n\n")
+	enclave_cfg_h.write("\n#endif\n")
+	enclave_cfg_h.close()
 
 
 	payload_h = open("build/"+p_name+"/"+iip+"/App/payload.h", 'w')
@@ -140,10 +182,10 @@ for servers in root.findall("servers"):
 	for j in range(0, len(set(adict))):
 		if g_e_mask[0] & (1 << j):
 		    payload_h.write("extern int "+str(anames[j])+"_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes); \n")
-		    payload_h.write("extern void "+str(anames[j])+"(struct actor_s *self);\n")
+		    payload_h.write("extern int "+str(anames[j])+"(struct actor_s *self);\n")
 	payload_h.write("\n")
 
-	payload_h.write("void (*pf[])(struct actor_s *) = {")
+	payload_h.write("int (*pf[])(struct actor_s *) = {")
 	for j in range(0, len(set(adict))):
 		if g_e_mask[0] & (1 << j):
 		    payload_h.write(str(anames[j]))
@@ -187,9 +229,9 @@ for servers in root.findall("servers"):
 	    else:
 		make_h.write("sgx_sign dump  -enclave Enclave"+str(i+1)+"/enclave.signed.so -dumpfile  Enclave"+str(i+1)+"/dump\n")
 		make_h.write("echo \"unsigned char csum[32 * 2]={\" > Enclave"+str(i)+"/csum.c\n")
-		make_h.write("grep -A2 hash  Enclave"+str(i+1)+"/dump |grep \"0x\" | sed -e 's/\s/,/g' >> Enclave"+str(i)+"/csum.c\n")
+		make_h.write("grep -A2 hash  Enclave"+str(i+1)+"/dump |grep \"0x\" | sed -e 's/\s/,/g' | head -n 2 >> Enclave"+str(i)+"/csum.c\n")
 		if( i == 1):
-		    make_h.write("grep -A2 hash  Enclave"+str(len(set(genclaves))-1)+"/dump |grep \"0x\" | sed -e 's/\s/,/g' >> Enclave"+str(i)+"/csum.c\n")
+		    make_h.write("grep -A2 hash  Enclave"+str(len(set(genclaves))-1)+"/dump |grep \"0x\" | sed -e 's/\s/,/g'  | head -n 2 >> Enclave"+str(i)+"/csum.c\n")
 		make_h.write("echo \"};\" >> Enclave"+str(i)+"/csum.c\n")
 
 	    make_h.write("if ! make -C Enclave"+str(i)+"; then echo build error, abort; exit; fi\n\n")
@@ -197,12 +239,55 @@ for servers in root.findall("servers"):
 	    os.makedirs("build/"+p_name+"/"+iip+"/Enclave"+str(i))
 	    os.symlink("../../../../examples/"+p_name+"/"+base, "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/payload.c")
 	    os.symlink("../../../../parts/Enclave/Enclave.cpp", "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/Enclave.cpp")
-	    os.symlink("../../../../parts/Enclave/Enclave.config.xml", "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/Enclave.config.xml")
+	    os.symlink("../../../../examples/"+p_name+"/Enclave.config.xml", "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/Enclave.config.xml")
+#
+	    inc_mk = open("build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/inc.mk", 'w')
+	    inc_mk.write("#GENERATED\n")
+	    if os.path.isfile("examples/"+p_name+"/extras.cfg"):
+		extras = open("examples/"+p_name+"/extras.cfg", 'r')
+		content = extras.readlines()
+		content = [x.strip() for x in content] 
+		c_files = content[0].split(' = ')
+		if( len(c_files) > 1):
+		    c_files = c_files[1]
+		    for fname in c_files.split(" "):
+			os.symlink("../../../../examples/"+p_name+"/"+fname, "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/"+fname)
+		else:
+		    c_files = ""
+
+		h_files = content[1].split(' = ')
+		if( len(h_files) > 1):
+		    h_files = h_files[1]
+		    for fname in h_files.split(" "):
+			os.symlink("../../../../examples/"+p_name+"/"+fname, "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/"+fname)
+		else:
+		    h_files = ""
+
+		a_files = content[2].split(' = ')
+		if( len(a_files) > 1):
+		    a_files = a_files[1]
+		else:
+		    a_files = ""
+
+		inc_mk.write("Inc_libs +="+a_files+"\n")
+		inc_mk.write("Inc_objs +="+c_files.replace(".c", ".o")+"\n")
+	    inc_mk.close()
+#
 	    os.symlink("../../../../parts/Enclave/Enclave_private.pem", "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/Enclave_private.pem")
 	    os.symlink("../../../../parts/Enclave/Makefile", "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/Makefile")
 	    os.makedirs("build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/EActors")
 	    for item in os.listdir("parts/EActors/"):
 		os.symlink("../../../../../parts/EActors/" + item, "build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/EActors/" + item)
+
+	    enclave_cfg_h = open("build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/enclave_cfg.h", 'w')
+	    enclave_cfg_h.write("//GENERATED\n")
+	    enclave_cfg_h.write("#ifndef ENCLAVE_CFG_H\n")
+	    enclave_cfg_h.write("#define ENCLAVE_CFG_H\n\n")
+	    enclave_cfg_h.write("#define ENCLAVE_ID		"+str(i)+"\n")
+	    enclave_cfg_h.write("#define ACTORS_MASK	("+str(g_e_mask[i])+"ULL)\n\n")
+	    enclave_cfg_h.write("\n#endif\n")
+	    enclave_cfg_h.close()
+
 
 	    payload_h = open("build/"+p_name+"/"+iip+"/Enclave"+str(i)+"/payload.h", 'w')
 	    payload_h.write("//GENERATED\n")
@@ -212,10 +297,10 @@ for servers in root.findall("servers"):
 	    for j in range(0, len(set(adict))):
 		    if g_e_mask[i] & (1 << j):
 			payload_h.write("extern int "+str(anames[j])+"_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes); \n")
-			payload_h.write("extern void "+str(anames[j])+"(struct actor_s *self);\n")
+			payload_h.write("extern int "+str(anames[j])+"(struct actor_s *self);\n")
 	    payload_h.write("\n")
 
-	    payload_h.write("void (*pf[])(struct actor_s *) = {")
+	    payload_h.write("int (*pf[])(struct actor_s *) = {")
 	    for j in range(0, len(set(adict))):
 		    if g_e_mask[i] & (1 << j):
 			payload_h.write(str(anames[j]))

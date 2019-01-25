@@ -37,7 +37,7 @@ struct ps_struct {
 
 
 
-void first(struct actor_s *self) {
+int first(struct actor_s *self) {
 	struct socket_s *sockA = &self->sockets[0];
 	struct socket_s *sockB = &self->sockets[1];
 	struct mbox_struct *msg = NULL;
@@ -49,7 +49,7 @@ void first(struct actor_s *self) {
 	if(ps->once) {
 		ret = create_cargo(sockA, &cargo);
 		if(ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 		sgx_read_rand((unsigned char *)&ps->rnd, sizeof(ps->rnd));
@@ -74,7 +74,7 @@ void first(struct actor_s *self) {
 	} else {
 		ret = recv_cargo_ks(sockB, &cargo, sizeof(struct mbox_struct));
 		if( ret == 1) {
-			return;
+			return 1;
 		}
 
 		msg = (struct mbox_struct *) cargo.data;
@@ -92,9 +92,11 @@ void first(struct actor_s *self) {
 			aexit();
 		}
 	}
+
+	return 1;
 }
 
-void keeper(struct actor_s *self) {
+int keeper(struct actor_s *self) {
 	struct mbox_struct *msg;
 	struct socket_s *sockA = &self->sockets[0];
 	struct socket_s *sockB = &self->sockets[1];
@@ -142,6 +144,8 @@ void keeper(struct actor_s *self) {
 #endif
 
 	}
+
+	return 1;
 }
 
 #define ENC 1
@@ -199,8 +203,8 @@ int first_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 
 
 #define SERVER(A) \
-void keeper##A(struct actor_s *self) {												\
-	keeper(self);														\
+int keeper##A(struct actor_s *self) {												\
+	return keeper(self);														\
 }																\
 																\
 int keeper##A##_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes) {				\

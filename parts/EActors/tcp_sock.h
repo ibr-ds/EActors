@@ -27,13 +27,6 @@ struct sockaddr_in {
 #include <netinet/in.h>
 #endif
 
-
-enum req_op {
-	S_READ,
-	S_WRITE,
-	S_CLOSE,
-};
-
 struct tcp_sock {
 	queue	*mbox;
 	int	sockfd;
@@ -61,13 +54,15 @@ struct batched_head {
 	queue q;
 };
 
+#define REQ_SIZE	( (PL_SIZE - (8 + 12 ) ) & 0xffffff80)
+
 struct req {
+//todo: Two fields + cast
 	queue *mbox;
 	int size;
 	int sockfd;
-	int id; ///< this variable can be used sometimes as number of batched requests
-	enum req_op	op;
-	char data[800]; // todo: sanity check
+	int id;
+	char data[REQ_SIZE];
 };
 
 #define ACCEPTER	199

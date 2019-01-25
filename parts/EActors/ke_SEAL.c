@@ -69,7 +69,7 @@ int build_SEAL_slave_socket(struct socket_s *sockA) {
 	if( sockA->state * 16 >= pack_get_size(sockA))
 		return 0;
 
-	node *tmp = pop_front(sockA->in);
+	node *tmp = nalloc(sockA->in);
 	if(tmp == NULL)
 		return 1;
 

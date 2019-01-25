@@ -42,7 +42,7 @@ pong: [4][2]
 		<worker>
 			<id>1</id>
 			<cpus>
-				<cpu>2</cpu>
+				<cpu>1</cpu>
 			</cpus>
 			<enclave>
 				<id>1</id>
@@ -55,7 +55,7 @@ pong: [4][2]
 		<worker>
 			<id>2</id>
 			<cpus>
-				<cpu>4</cpu>
+				<cpu>2</cpu>
 			</cpus>
 			<enclave>
 				<id>2</id>

@@ -16,7 +16,7 @@ extern "C" {
 struct LARSA_struct {
 	sgx_target_info_t target;
 	sgx_report_t report;
-	unsigned char buf[1 * SGX_AESGCM_IV_SIZE + 16];
+	unsigned char buf[256];
 } __attribute__ ((aligned (64)));
 
 

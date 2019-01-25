@@ -19,3 +19,5 @@
 #include "base64.h"
 #include "factory.h"
 #include "node.h"
+#include "eos.h"
+#include "cpio.h"

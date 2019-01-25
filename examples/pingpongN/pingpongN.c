@@ -42,7 +42,7 @@ struct ps_struct {
 - receives pong
 - returns a cargo
 */
-void aping(struct actor_s *self) {
+int aping(struct actor_s *self) {
 	struct socket_s *sockA = &self->sockets[0];
 	struct mbox_struct *msg = NULL;
 	struct cargo_s cargo;
@@ -52,7 +52,7 @@ void aping(struct actor_s *self) {
 	if(ps->once) {
 		ret = create_cargo(sockA, &cargo);
 		if(ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 #ifndef PAPER
@@ -74,7 +74,7 @@ void aping(struct actor_s *self) {
 	} else {
 		ret = recv_cargo_ks(sockA, &cargo, sizeof(struct mbox_struct));
 		if( ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 #ifdef ADEBUG
@@ -89,6 +89,8 @@ void aping(struct actor_s *self) {
 			aexit(0);
 		}
 	}
+
+	return 1;
 }
 
 
@@ -103,7 +105,7 @@ void aping(struct actor_s *self) {
 
 \note pong reuses a cargo
 */
-void apong(struct actor_s *self) {
+int apong(struct actor_s *self) {
 	struct socket_s *sockB = &self->sockets[0];
 	struct mbox_struct *msg;
 	struct cargo_s	cargo;
@@ -114,7 +116,7 @@ void apong(struct actor_s *self) {
 	ret = recv_cargo(sockB, &cargo);
 #endif
 	if( ret == 1)
-		return;
+		return 1;
 
 	msg = (struct mbox_struct *) cargo.data;
 
@@ -135,6 +137,8 @@ void apong(struct actor_s *self) {
 #else
 	send_cargo(&cargo);
 #endif
+
+	return 1;
 }
 
 // constructors for pingpongN-1.xml configuration file

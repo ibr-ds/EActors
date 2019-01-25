@@ -1,4 +1,4 @@
-SGX_SDK ?= /path/to/the/sgxsdk
+#SGX_SDK ?= /path/to/the/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
@@ -37,6 +37,9 @@ else
 		SGX_COMMON_CFLAGS += -O2 -fdata-sections -ffunction-sections -Wl,--gc-sections
 endif
 
+Inc_libs := 
+include inc.mk
+
 ######## App Settings ########
 
 ifneq ($(SGX_MODE), HW)
@@ -46,7 +49,7 @@ else
 endif
 
 # App_Cpp_Files := App/App.cpp $(wildcard App/Edger8rSyntax/*.cpp) $(wildcard App/TrustedLibrary/*.cpp)
-App_C_Files := EActors/stack.c EActors/node.c EActors/socket.c EActors/cargo.c EActors/base64.c EActors/factory.c EActors/pack_memcpy.c EActors/pack_ctr.c EActors/pack_gcm.c
+App_C_Files := EActors/node.c EActors/socket.c EActors/cargo.c EActors/base64.c EActors/factory.c EActors/pack_memcpy.c EActors/pack_ctr.c EActors/pack_gcm.c EActors/eos.c EActors/cpio.c
 App_Cpp_Files := App.cpp sgx_utils/sgx_utils.cpp 
 App_Include_Paths := -I. -I../ -I$(SGX_SDK)/include -I./EActors
 
@@ -121,10 +124,6 @@ Enclave_u.o: Enclave_u.c
 	$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-payload.o: payload.c
-	$(CC) $(App_C_Flags) -c  $< -o $@
-	@echo "CXX  <=  $<"
-
 %.o: %.c
 	$(CC) $(App_C_Flags) -c  $< -o $@
 	@echo "CXX  <=  $<"
@@ -135,7 +134,7 @@ EActors/%.o: EActors/%.cpp
 	$(CC) $(App_C_Flags) -c  $< -o $@
 	@echo "CC  <=  $<"
 
-$(App_Name): Enclave_u.o $(App_Cpp_Objects) $(App_C_Objects) payload.o
+$(App_Name): Enclave_u.o $(App_Cpp_Objects) $(App_C_Objects) payload.o $(Inc_libs) $(Inc_objs)
 	@$(CXX) $^ -o $@ $(App_Link_Flags)
 	mv $(App_Name) ../
 	@echo "LINK =>  $@"
@@ -143,4 +142,4 @@ $(App_Name): Enclave_u.o $(App_Cpp_Objects) $(App_C_Objects) payload.o
 .PHONY: clean
 
 clean:
-	@rm -f $(App_C_Objects) $(App_Cpp_Objects) Enclave_u.* $(App_Name) payload.o *.cpp.* ../$(App_Name)
+	@rm -f $(App_C_Objects) $(App_Cpp_Objects) Enclave_u.* $(App_Name) payload.o *.cpp.* ../$(App_Name) $(Inc_objs)

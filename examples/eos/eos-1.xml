@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+        [C][E]
+cleaner	[0][0]
+test: 	[2][1]
+-->
+<data>
+
+<actors>
+    <actor>
+	<id>0</id>
+	<name>test</name>
+    </actor>
+    <actor>
+	<id>1</id>
+	<name>cleaner</name>
+    </actor>
+</actors>
+
+<servers>
+    <server>
+	<ip>localhost</ip>
+	<workers>
+		<worker>
+			<id>0</id>
+			<cpus>
+				<cpu>0</cpu>
+			</cpus>
+			<enclave>
+				<id>1</id>
+				<actors>
+					<actor>test</actor>
+				</actors>
+			</enclave>
+		</worker>
+		<worker>
+			<id>1</id>
+			<cpus>
+				<cpu>1</cpu>
+			</cpus>
+			<enclave>
+				<id>0</id>
+				<actors>
+					<actor>cleaner</actor>
+				</actors>
+			</enclave>
+		</worker>
+	</workers>
+    </server>
+
+</servers>
+
+</data>

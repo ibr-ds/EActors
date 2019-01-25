@@ -35,7 +35,7 @@ struct ps_struct {
 - if it is a ping time (once), the aping actor pops an empty node, fills it by 'ping' and pushes to mbox[1]
 - Otherwise pops message from mbox[0], and on success checks counter and restarts once
 */
-void aping(struct actor_s *self) {
+int aping(struct actor_s *self) {
 	struct ps_struct *ps = (struct ps_struct *) self->ps;
 	if(ps->once) {
 		node *tmp = nalloc(ps->pool);
@@ -48,7 +48,7 @@ void aping(struct actor_s *self) {
 	} else {
 		node *tmp=pop_front(&ps->mbox[0]);
 		if(tmp==NULL)
-			return;
+			return 1;
 
 		struct mbox_struct *msg = (struct mbox_struct *) tmp->payload;
 		printa("[PING] Got message '%s'\n", msg->msg);
@@ -57,10 +57,11 @@ void aping(struct actor_s *self) {
 		if(ps->cnt--)
 			ps->once = 1;
 		else {
-			printa("end\n");
+			return 0;
 		}
 	}
 
+	return 1;
 }
 
 /**
@@ -69,11 +70,11 @@ void aping(struct actor_s *self) {
 
 - pops message from mbox[1] and sends 'pong' via mbox[0]
 */
-void apong(struct actor_s *self) {
+int apong(struct actor_s *self) {
 	struct ps_struct *ps = (struct ps_struct *) self->ps;
 	node *tmp = pop_front(&ps->mbox[1]);
 	if(tmp==NULL)
-		return;
+		return 1;
 
 	struct mbox_struct *msg = (struct mbox_struct *) tmp->payload;
 
@@ -81,6 +82,11 @@ void apong(struct actor_s *self) {
 	memcpy(msg->msg, "pong", sizeof("pong"));
 
 	push_back(&ps->mbox[0], tmp);
+
+	if(!ps->cnt--)
+		return 0;
+
+	return 1;
 }
 
 /**
@@ -96,7 +102,7 @@ int aping_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 	ps->mbox = gboxes;
 
 	ps->once = 1;
-	ps->cnt = 1000000;
+	ps->cnt = 1000;
 
 	return 0;
 }
@@ -107,5 +113,6 @@ int apong_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 	ps->pool = gpool;
 	ps->mbox = gboxes;
 
+	ps->cnt = 1000;
 	return 0;
 }

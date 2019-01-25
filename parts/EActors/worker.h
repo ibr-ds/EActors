@@ -15,19 +15,19 @@ Worker:
 extern "C" {
 #endif
 
-
 #include "../config.h"
 
 /**
 \brief A worker structure
 */
 struct s_worker {
-	pthread_t id;						///< Pthread id
-	int my_id;						///< an identifier of a worker
+	unsigned long int id;					///< Pthread id
+	unsigned int my_id;					///< an identifier of a worker
 	unsigned char 		cpus_mask;			///< //cores binding policy
 	unsigned long int	enclaves_mask;			///< enclave binding policy
 	unsigned long int	actors_mask[MAX_ENCLAVES];	///< per-enclave actor calling policy
-}	workers[MAX_WORKERS]; 					///< an array of workers
+}	workers[MAX_WORKERS],					///< an array of workers
+	dyn_workers[MAX_DYN_WORKERS]; 				///< an array of dynamicly created workers
 
 void assign_workers(void); 					///< automaticly generated function with assignments
 

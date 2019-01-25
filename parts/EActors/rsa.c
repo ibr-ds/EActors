@@ -12,6 +12,10 @@ Based on and inspired by:
 * wolfssl: https://github.com/wolfSSL/wolfssl/blob/master/wolfcrypt/user-crypto/src/rsa.c
 * accessl: https://github.com/gozdal/accessl/blob/master/src/accel/accel_ipp.c
 * RSA Key Generation: Intel IPP vs OpenSSL: https://gist.github.com/astojanov/d09ef96b6ee92834e781
+
+TODO: SDK 1.9, 2.3 and 'master' has different API and different header. ippGetStatusString exists only in 1.9, while 2.3 and master (2.3+) use ippcpGetStatusString.
+However, 2.3 does not have some header files which exist inside master ahd 1.9. So, now 'ipp(cp)GetStatusString' is commened out, but someday this should be fixed.
+
 */
 
 #include "rsa.h"
@@ -21,6 +25,8 @@ Based on and inspired by:
 #include "inc/ippcore.h"
 
 extern void printa(const char *fmt, ...);
+
+//#define DEBUG_RSA
 
 
 /**
@@ -36,16 +42,19 @@ void Type_BN(struct rsa_kp_struct *key, const char *pMsg, const IppsBigNumState 
 	Ipp8u* bnValue =  (unsigned char *) malloc(size*4);
 	int ret = ippsGetOctString_BN(bnValue, size *4, pBN);
 	if (ret != ippStsNoErr) {
-		printa("decrypt error of %s\n", ippGetStatusString(ret));
+//		printa("decrypt error of %s\n", ippcpGetStatusString(ret));
+		printa("decrypt error of %d\n", ret);
 		while(1);
 	}
 
+//#ifdef DEBUG_RSA
 	if(pMsg)
 		printa("%s\t", pMsg);
 
 	for( n = 0; n < size * 4; n++)
 		printa("%02x", bnValue[n]);
 	printa("\n");
+//#endif
 
 	if(key)
 		memcpy(key->pub, bnValue, 256);
@@ -144,7 +153,9 @@ void gen_rsa(struct rsa_kp_struct *key, int bitsRSA) {
 			break;
 
 		if (status != ippStsInsufficientEntropy) {
-			printa("ippsRSA_GeneratKeys error of %s\n", ippGetStatusString(ret));while(1);
+//			printa("ippsRSA_GeneratKeys error of %s\n", ippcpGetStatusString(status));
+			printa("ippsRSA_GeneratKeys error %d\n", status);
+			while(1);
 		}
 	}
 
@@ -211,7 +222,8 @@ void fill_rsa(struct rsa_kp_struct *key, char *pModulus, int bitsRSA, enum key_t
 
 	int ret = ippsRSA_SetPublicKey(key->pModulus, key->pPublicExp, key->publicKey);
 	if (ret != ippStsNoErr) {
-		printa("ippsRSA_SetPublicKey error %s\n", ippGetStatusString(ret));
+//		printa("ippsRSA_SetPublicKey error %s\n", ippcpGetStatusString(ret));
+		printa("ippsRSA_SetPublicKey error %d\n", ret);
 		while(1);
 	}
 }
@@ -229,7 +241,7 @@ void rsa_encrypt(char *dst, char *src, int size, struct rsa_kp_struct *key) {
 
 	ret = ippsRSA_GetBufferSizePublicKey(&scratchSz, key->publicKey);
 	if (ret != ippStsNoErr) {
-		printa("%d, %d\n",__LINE__, ret);while(1);
+		printa("RCA_ENCRYPT FAIL: %d, %d\n",__LINE__, ret);while(1);
 	}
 
 	scratchBuffer = malloc(scratchSz*(sizeof(Ipp8u)));
@@ -240,7 +252,9 @@ void rsa_encrypt(char *dst, char *src, int size, struct rsa_kp_struct *key) {
 	ret = ippsRSAEncrypt_PKCSv15((Ipp8u *) src, size, NULL, (Ipp8u *) dst, key->publicKey, scratchBuffer);
 	if (ret != ippStsNoErr) {
 		free(scratchBuffer);
-		printa(("encrypt error of %s\n", ippGetStatusString(ret)));
+//		printa("encrypt error of %s\n", ippcpGetStatusString(ret));
+		printa("encrypt error of %d\n", ret);
+		while(1);
 	}
 
 	free(scratchBuffer);
@@ -255,7 +269,8 @@ void rsa_encrypt(char *dst, char *src, int size, struct rsa_kp_struct *key) {
 */
 int rsa_decrypt(char *dst, char *src, struct rsa_kp_struct *key) {
 	Ipp8u* scratchBuffer;
-	int    scratchSz, ret, outSz;
+	int    scratchSz, outSz;
+	IppStatus	ret;
 
 	ret = ippsRSA_GetBufferSizePrivateKey(&scratchSz, key->privateKey);
 	if (ret != ippStsNoErr) {
@@ -269,7 +284,8 @@ int rsa_decrypt(char *dst, char *src, struct rsa_kp_struct *key) {
 
 	ret = ippsRSADecrypt_PKCSv15((Ipp8u *) src, (Ipp8u *) dst, &outSz, key->privateKey, scratchBuffer);
 	if (ret != ippStsNoErr) {
-		printa("decrypt error of %s\n", ippGetStatusString(ret));
+//		printa("decrypt error of %s\n", ippcpGetStatusString(ret));
+		printa("decrypt error of %d\n", ret);
 		while(1);
 	}
 

@@ -72,7 +72,7 @@ void unpack_gcm(char *dst, char *src, int size, struct ctx_gcm_s *ctx, char *mac
 		(sgx_aes_gcm_128bit_tag_t *) mac);
 
 	if (sgx_ret != SGX_SUCCESS) {
-		printa("Error while encrypting = %x\n", sgx_ret);
+		printa("Error while decrypting = %x\n", sgx_ret);
 		while(1);
 	}
 

@@ -6,9 +6,10 @@
 
 //operation on the entity
 enum fac_op {
-	F_OKK,		//F_OK is used by someone else
+	F_OKK = 0xaa,		//F_OK is used by someone else
 	F_CREATE,
 	F_DESTROY,
+	F_FAIL
 };
 
 
@@ -16,6 +17,14 @@ enum fac_op {
 enum fac_tp {
 	F_SERVER,
 	F_CLIENT,
+	F_ENCLAVE,
+	F_TIMER,
+	F_CLOSER,
+	F_READER,
+	F_WRITER,
+	F_PIPE_READER,
+	F_PIPE_WRITER,
+	F_ACCEPTER
 };
 
 struct factory_ctx_s {
@@ -39,6 +48,7 @@ struct	factory_request_s {
 extern "C" {
 #endif
 
+void spawn_service(queue *gpool, queue *gboxes, enum fac_tp tp, int clnt, int port, queue *mbox);
 void spawn_server(queue *gpool, queue *gboxes, int ip, int port, queue *mbox);
 void spawn_client(queue *gpool, queue *gboxes, int ip, int port, queue *mbox);
 

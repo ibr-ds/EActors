@@ -48,7 +48,7 @@ struct ps_struct {
 - receives pong
 - returns a cargo
 */
-void aping(struct actor_s *self) {
+int aping(struct actor_s *self) {
 	struct socket_s *sockA = &self->sockets[0];
 	struct mbox_struct *msg = NULL;
 	struct cargo_s cargo;
@@ -58,7 +58,7 @@ void aping(struct actor_s *self) {
 	if(ps->once) {
 		ret = create_cargo(sockA, &cargo);
 		if(ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 		memcpy(msg->msg, "ping", sizeof("ping"));
@@ -75,7 +75,7 @@ void aping(struct actor_s *self) {
 	} else {
 		ret = recv_cargo_ks(sockA, &cargo, sizeof(struct mbox_struct));
 		if( ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 #ifdef ADEBUG
@@ -85,9 +85,12 @@ void aping(struct actor_s *self) {
 
 		if(ps->cnt--)
 			ps->once = 1;
-		else
+		else {
 			printa("end\n",0);
+			aexit(0);
+		}
 	}
+	return 1;
 }
 
 /**
@@ -101,7 +104,7 @@ void aping(struct actor_s *self) {
     - allocate new cargo if need to repack
     - pack new message and send
 */
-void aming(struct actor_s *self) {
+int aming(struct actor_s *self) {
 	struct mbox_struct *msg;
 	struct socket_s *sockA = &self->sockets[0];
 	struct socket_s *sockB = &self->sockets[1];
@@ -118,7 +121,7 @@ void aming(struct actor_s *self) {
 		printa("2. aming got message '%s' from aping\n", msg->msg);
 #endif
 
-		if(need_repack(sockA, sockB)) {
+		if(need_repack(sockA, sockB) ) {
 			return_cargo(&cargo);
 			ret = create_cargo(sockB, &cargo);
 			if(ret == 1) {
@@ -146,14 +149,14 @@ void aming(struct actor_s *self) {
 		ret = recv_cargo(sockB, &cargo);
 #endif
 		if(ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 #ifdef ADEBUG
 		printa("5. aming got message '%s' from apong\n", msg->msg);
 #endif
 
-		if(need_repack(sockA, sockB)) {
+		if(need_repack(sockA, sockB) ) {
 			return_cargo(&cargo);
 			ret = create_cargo(sockA, &cargo);
 			if(ret == 1) {
@@ -175,6 +178,8 @@ void aming(struct actor_s *self) {
 		send_cargo(&cargo);
 #endif
 	}
+
+	return 1;
 }
 
 /**
@@ -188,7 +193,7 @@ void aming(struct actor_s *self) {
 
 \note pong reuses a cargo
 */
-void apong(struct actor_s *self) {
+int apong(struct actor_s *self) {
 	struct socket_s *sockB = &self->sockets[0];
 	struct mbox_struct *msg;
 	struct cargo_s	cargo;
@@ -199,7 +204,7 @@ void apong(struct actor_s *self) {
 	ret = recv_cargo(sockB, &cargo);
 #endif
 	if( ret == 1)
-		return;
+		return 1;
 
 	msg = (struct mbox_struct *) cargo.data;
 
@@ -215,17 +220,53 @@ void apong(struct actor_s *self) {
 #else
 	send_cargo(&cargo);
 #endif
+	return 1;
 }
 
+#if 0
+// constructors for tripong1.xml configuration file
+#define ENC1 	0
+#define CROSS1 	1
+#define STYPE1	MEMCPY
+
+#define ENC2 	0
+#define CROSS2 	1
+#define STYPE2	MEMCPY
+#endif
+
+#if 0
+// constructors for tripong2.xml configuration file
+#define ENC1 	0
+#define CROSS1 	1
+#define STYPE1	MEMCPY
+
+#define ENC2 	1
+#define CROSS2 	1
+#define STYPE2	GCM
+#endif
+
+#if 0
 // constructors for tripong3.xml configuration file
+#define ENC1 	1
+#define CROSS1 	1
+#define STYPE1	GCM
 
-#define ENC1 1
-#define CROSS1 1
+#define ENC2 	1
+#define CROSS2 	1
+#define STYPE2	GCM
+#endif
 
-#define ENC2 1
-#define CROSS2 1
+#if 1
+// constructors for tripong4.xml configuration file
+#define ENC1 	0
+#define CROSS1 	1
+#define STYPE1	MEMCPY
 
-#define STYPE	GCM
+#define ENC2 	0
+#define CROSS2 	0
+#define STYPE2	MEMCPY
+#endif
+
 
 int aping_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes) {
 	struct socket_s *sockA = &self->sockets[0];
@@ -249,7 +290,7 @@ int aping_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 		sockA->out = &pboxes[1];
 	}
 
-	setup_socket(sockA, ENC1, CROSS1, STYPE);
+	setup_socket(sockA, ENC1, CROSS1, STYPE1);
 
 	ret |= build_LARSA_master_socket(sockA);
 
@@ -271,7 +312,7 @@ int aming_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 		sockA->out = &pboxes[0];
 	}
 
-	setup_socket(sockA, ENC1, CROSS1, STYPE);
+	setup_socket(sockA, ENC1, CROSS1, STYPE1);
 
 	ret |= build_LARSA_slave_socket(sockA);
 //
@@ -285,7 +326,7 @@ int aming_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 		sockB->out = &pboxes[3];
 	}
 
-	setup_socket(sockB, ENC2, CROSS2, STYPE);
+	setup_socket(sockB, ENC2, CROSS2, STYPE2);
 
 	ret |= build_LARSA_master_socket(sockB);
 
@@ -306,7 +347,7 @@ int apong_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 		sockA->out = &pboxes[2];
 	}
 
-	setup_socket(sockA, ENC2, CROSS2, STYPE);
+	setup_socket(sockA, ENC2, CROSS2, STYPE2);
 
 	ret |= build_LARSA_slave_socket(sockA);
 

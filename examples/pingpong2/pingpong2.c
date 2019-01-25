@@ -28,8 +28,9 @@ struct ps_struct {
 };
 #define TEST
 #define ADEBUG
+#define NPINGS	500
 
-void aping(struct actor_s *self) {
+int aping(struct actor_s *self) {
 	struct socket_s *sockA = &self->sockets[0];
 	struct mbox_struct *msg = NULL;
 	struct cargo_s cargo;
@@ -39,7 +40,7 @@ void aping(struct actor_s *self) {
 	if(ps->once) {
 		ret = create_cargo(sockA, &cargo);
 		if(ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 		memcpy(msg->msg, "ping", sizeof("ping"));
@@ -56,7 +57,7 @@ void aping(struct actor_s *self) {
 	} else {
 		ret = recv_cargo_ks(sockA, &cargo, sizeof(struct mbox_struct));
 		if( ret == 1)
-			return;
+			return 1;
 
 		msg = (struct mbox_struct *) cargo.data;
 #ifdef ADEBUG
@@ -68,9 +69,11 @@ void aping(struct actor_s *self) {
 			ps->once = 1;
 		else {
 			printa("end\n",0);
-//			aexit(0);
+			aexit(0);
 		}
 	}
+
+	return 1;
 }
 
 
@@ -85,18 +88,19 @@ void aping(struct actor_s *self) {
 
 \note pong reuses a cargo
 */
-void apong(struct actor_s *self) {
+int apong(struct actor_s *self) {
 	struct socket_s *sockB = &self->sockets[0];
 	struct mbox_struct *msg;
 	struct cargo_s	cargo;
 	int ret;
+
 #ifdef TEST
 	ret = recv_cargo_ks(sockB, &cargo, sizeof(struct mbox_struct));
 #else
 	ret = recv_cargo(sockB, &cargo);
 #endif
 	if( ret == 1)
-		return;
+		return 1;
 
 	msg = (struct mbox_struct *) cargo.data;
 
@@ -112,15 +116,34 @@ void apong(struct actor_s *self) {
 #else
 	send_cargo(&cargo);
 #endif
+
+	return 1;
 }
 
+#if 0
+//pingpong2/pingpong2-1.xml
+//pingpong2/pingpong2-2.xml
+#define CROSS 1
+#define ENC 0
+#define STYPE	MEMCPY	//plays no role
+#endif
 
+#if 1
 //pingpong2/pingpong2-3.xml
-
+//pingpong2/pingpong2-4.xml
 #define CROSS 1
 #define ENC 1
 #define STYPE	GCM	//CTR, GCM or MEMCPY
 //#define SEAL		//LARSA is default
+#endif
+
+#if 0
+//pingpong2/pingpong2-5.xml
+#define CROSS 0
+#define ENC 0
+#define STYPE	MEMCPY	//plays no role
+#endif
+
 
 int aping_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes) {
 	struct socket_s *sockA = &self->sockets[0];
@@ -133,7 +156,7 @@ int aping_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, q
 	BUILD_BUG_ON( sizeof(((struct socket_s *)0)->pool->top->payload) < sizeof(struct mbox_struct));
 
 	ps->once = 1;
-	ps->cnt = 1000000;
+	ps->cnt = NPINGS;
 
 	sockA->cross = ENC;
 	if(CROSS) {

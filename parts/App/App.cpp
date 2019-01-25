@@ -28,18 +28,28 @@ Mostly, this code spawns enclaves, workers and allocates shared objects.
 
 #include "config.h"
 
+
 sgx_enclave_id_t eid[MAX_ENCLAVES]; ///< array for enclave's identificators
+sgx_enclave_id_t eid_dyn[MAX_DYN_ENCLAVES]; ///< array for enclave's identificators
+
+
+int eid_dyn_ctr = 0;
+
 
 //staticaly allocated boxes
 queue gboxes[MAX_GBOXES]; ///< message gboxes
 queue gpool; ///< a global free memory pool
 
+#ifdef V2
+queue eboxes[MAX_ENCLAVES]; ///< message boxes for trusted system actors
+#endif
+
 //dynamicaly allocated boxes
 queue gboxes_v2; ///< a second version of mbox assigning
 queue gpool_v2[MAX_GBOXES];
 
-//storage globals
-void *gsp = NULL; //memory mapped storage
+//storae globals
+void *gsp = NULL; //memory mapped store
 int gsfd = -1;
 
 //OCalls
@@ -53,22 +63,25 @@ void ocall_usleep(int usec) {
 }
 
 void ocall_exit(int ret) {
-	printf("emergency exit is called\n");
+	printf("emergency exit was called\n");
+	for (int i = 0; i < MAX_ENCLAVES; i++) {
+		sgx_destroy_enclave(eid[i]);
+	}
 	exit(ret);
 }
 
 struct timeval pstart, pend;
 void ocall_print(const char* str) {
 	gettimeofday(&pend, NULL);
-	printf("%ld\t%s",((pend.tv_sec-pstart.tv_sec)*1000000 + pend.tv_usec - pstart.tv_usec),str);
-//	printf("%s",str);
+//	printf("%ld\t%s",((pend.tv_sec-pstart.tv_sec)*1000000 + pend.tv_usec - pstart.tv_usec),str);
+	printf("%s",str);
 	gettimeofday(&pstart, NULL);
 }
 
 //
 #include "worker.h"
 #include "aargs.h"
-#include "storage.h"
+#include "eos.h"
 
 
 #include "iworkers.cxx"
@@ -115,7 +128,7 @@ void *e_thread(void *arg)
 
 	i = 0;
 
-	printa("spawn worker %d with %d enclaves\n", me->my_id, total_enclaves);
+	printa("spawn worker %d with 0x%x enclaves\n", me->my_id, total_enclaves);
 
 	if(total_enclaves == 0) {
 		printf("total enclaved == 0, should never happens \n");
@@ -125,18 +138,31 @@ void *e_thread(void *arg)
 
 	while(1) {
 //place for an enclave switching policy
-		if(my_enclaves[i] != 0) {
-			status = dispatcher(eid[my_enclaves[i]], &ptr, me->actors_mask[my_enclaves[i]], total_enclaves > 1);
-			if (status != SGX_SUCCESS)
-				printf("[%d]\tecall error %x\n", __LINE__, status);
-		} else {
-			printa("untrusted dispatcher\n");
-			u_dispatcher(me->actors_mask[my_enclaves[i]], total_enclaves > 1);
+		ret = 0;
+		ptr = 0;
+		for( i = 0; i < total_enclaves; i++) {
+			if(my_enclaves[i] == -1) //ugly workaround, but it is better than add 'done' state to actors
+				continue;
+
+			if(my_enclaves[i] != 0) {
+				status = dispatcher(eid[my_enclaves[i]], &ptr, me->my_id, total_enclaves > 1);
+				if (status != SGX_SUCCESS) {
+					printf("[%d]\tecall error %x, i = %d\n", __LINE__, status, i);while(1);
+				}
+			} else {
+//				printa("untrusted dispatcher\n");
+				ptr = u_dispatcher(total_enclaves > 1);
+			}
+
+			if(ptr == 0)
+				my_enclaves[i] = -1; //disable this enclave as soon all actors return zero
+
+			ret |= ptr;
 		}
-		i=(i + 1) % total_enclaves;
+		if (ret == 0)
+			return NULL;
 	}
 }
-
 
 int main(int argc, char const *argv[]) {
 	int ret;
@@ -166,19 +192,18 @@ int main(int argc, char const *argv[]) {
 		}
 	}
 
-//init a storage
-#ifdef STACK
-//A storage depends on stacks by design and cannot work with queue
-	gsfd = open("./storage", O_RDWR | O_CREAT,  S_IRWXU | S_IRGRP | S_IROTH);
-	if((gsp = mmap((void *)STORAGE_PTADDR, STORAGE_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,gsfd,0)) == MAP_FAILED || (unsigned long int) gsp!=STORAGE_PTADDR) {
-		perror("Error in mmap, do not forget 'dd if=/dev/zero of=./storage bs=10M count=1' ");
+//init a store
+
+//An EOS depends on stacks by design and cannot work with queue
+	gsfd = open("./eos", O_RDWR | O_CREAT,  S_IRWXU | S_IRGRP | S_IROTH);
+	if((gsp = mmap((void *)EOS_PTADDR, EOS_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,gsfd,0)) == MAP_FAILED || (unsigned long int) gsp!=EOS_PTADDR) {
+		perror("Error in mmap, do not forget 'dd if=/dev/zero of=./eos bs=10M count=1' ");
 		printf("gsp = %lx\n", (long unsigned int) gsp);
 		while(1);
 	}
-	printf("gsp = %lx with size = %d\n", (unsigned long int) gsp, STORAGE_SIZE);
+	printf("gsp = %lx with size = %d\n", (unsigned long int) gsp, EOS_SIZE);
 
-	storage_init(gsp, 1);
-#endif
+	eos_init(gsp, 1);
 
 //init global pools and gboxes
 	queue_init(&gpool);
@@ -191,7 +216,19 @@ int main(int argc, char const *argv[]) {
 
 	for(i = 0; i < MAX_GBOXES; i++) {
 		queue_init(&gboxes[i]);
+#ifdef V2
+		gboxes[i].id = i;
+		gboxes[i].type = GLOBAL;
+#endif
 	}
+
+#ifdef V2
+	for(i = 0; i < MAX_ENCLAVES; i++) {
+		queue_init(&eboxes[i]);
+		eboxes[i].id = i;
+		eboxes[i].type = GLOBAL;
+	}
+#endif
 
 //gboxes version 2
 //this interface can be used for dynamic allocation and use of mboxes
@@ -203,13 +240,22 @@ int main(int argc, char const *argv[]) {
 	queue_init(&gboxes_v2);
 
 	for(i = 0; i < MAX_GBOXES; i++) {
+//init pools
 		queue_init(&gpool_v2[i]);
 		for(j = 0; j < 10; j++) {
-//			node *tmp = pop(&gpool);
 			node *tmp = (node *) malloc(sizeof(node));
 			memset(tmp->payload, 0, sizeof(tmp->payload));
 			push_front(&gpool_v2[i], tmp);
 		}
+//init boxes
+		node *tmp = (node *) malloc(sizeof(node));
+		queue *tmp2 = (queue *) tmp->payload;
+		queue_init(tmp2);
+#ifdef V2
+		tmp2->id = i;
+		tmp2->type = GLOBAL;
+#endif
+		push_front(&gboxes_v2, tmp);
 	}
 
 	spawn_systhreads();
@@ -227,12 +273,16 @@ int main(int argc, char const *argv[]) {
 					struct aargs_s aargs;
 					aargs.gpool = &gpool;
 					aargs.gboxes = gboxes;
-					aargs.gsp =  (struct storage_struct *) gsp;
+#ifdef V2
+					aargs.eboxes = eboxes;
+					aargs.my_box = &eboxes[i];
+#endif
+					aargs.gsp =  (struct eos_struct *) gsp;
 					aargs.gboxes_v2 = &gboxes_v2;
 					aargs.gpool_v2 = gpool_v2;
 
 					if(i != 0) {
-						status = constructor(eid[i], &ptr, i*MAX_ACTORS+j, j, (void *) &aargs);
+						status = constructor(eid[i], &ptr, i, j, (void *) &aargs);
 						if (status != SGX_SUCCESS)
 							printf("[%d]\tecall error %x\n", __LINE__, status);
 					} else
@@ -247,13 +297,33 @@ int main(int argc, char const *argv[]) {
 
 
 //spawn workers
-	for(i=0; i < MAX_WORKERS; i++) {
+	for( i = 0; i < MAX_WORKERS; i++) {
 		workers[i].my_id = i;
 		if (pthread_create(&workers[i].id, NULL, e_thread,  &workers[i]) != 0)
 		        perror("pthread_create");
 	}
 
-	while(1)
-	    sleep(10);
-    return 0;
+	for(i = 0; i < MAX_WORKERS; i++) {
+		pthread_join(workers[i].id, NULL);
+		printf("Static worker %d has stopped\n", i);
+	}
+
+	void *retval;
+
+	while(1) {
+		for(i = 0; i < MAX_DYN_WORKERS; i++) {
+			if( (dyn_workers[i].id != 0) && pthread_tryjoin_np(dyn_workers[i].id, &retval) == EBUSY)
+				break;
+		}
+		if(i == MAX_DYN_WORKERS)
+		    break;
+	}
+
+	printf("All actors done, destroy enclaves\n");
+
+	for (int i = 0; i < MAX_ENCLAVES; i++) {
+		sgx_destroy_enclave(eid[i]);
+	}
+
+	return 0;
 }

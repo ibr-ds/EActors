@@ -19,6 +19,33 @@ void queue_init(queue *q) {
 }
 
 /**
+\brief is the queue empty?
+
+\param[in] *q queue
+\return 1 -- empty, 0 -- not empty
+*/
+int is_empty(queue *q) {
+	return (q->top == NULL);
+}
+
+/**
+\brief how many elements in the queue?
+
+\param[in] *q queue
+\return number of elements
+\note unsafe
+*/
+int how_long(queue *q) {
+	node *tmp = q->bottom;
+	int i =0;
+	while(tmp != NULL) {
+		i++;
+		tmp = tmp->header.next;
+	}
+	return i;
+}
+
+/**
 \brief Enqueue as FIFO
 
 \param[in] *q queue
@@ -75,12 +102,15 @@ void push_front(queue *q, node *new_node) {
 \return node
 */
 node *pop_front(queue *q) {
-	if(q->top == NULL)
-		return NULL;
 
 	node *node;
 
 	spin_lock(&q->lock);
+
+	if(q->top == NULL) {
+		spin_unlock(&q->lock);
+		return NULL;
+	}
 
 	node = q->top;
 	if(node->header.prev)
@@ -150,4 +180,27 @@ node *nalloc(queue *s) {
 */
 void nfree(node *n) {
 	push_front(n->header.pool, n);
+}
+
+
+///// Experimental
+
+//swap nodes between two queues
+void swap_nodes(queue *one, queue *two) {
+	spin_lock(&one->lock);
+	spin_lock(&two->lock);
+
+	node *one_bottom = one->bottom;
+	node *one_top = one->top;
+
+//	printa("ob = %p, ot = %p\n", one_bottom, one_top);
+
+	one->bottom = two->bottom;
+	one->top = two->top;
+
+	two->bottom = one_bottom;
+	two->top = one_top;
+
+	spin_unlock(&two->lock);
+	spin_unlock(&one->lock);
 }

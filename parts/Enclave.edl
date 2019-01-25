@@ -3,7 +3,7 @@ enclave {
         /* define ECALLs here. */
 /* */
         public int constructor(unsigned int id, unsigned int aid, [user_check]void *aargs_p);
-        public int dispatcher(unsigned long int a, char b);
+        public int dispatcher(unsigned int id, char b);
     };
 
     untrusted {

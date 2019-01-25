@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 void build_SEAL_master_socket(struct socket_s *sock) {
-	if(!is_cross(sock))
+	if(!is_enc(sock))
 		return;
 
 	printf("ERROR: you are calling function %s in untrusted environment which (1) is not supported and (2) has no sense\n", __func__);
@@ -40,7 +40,7 @@ void build_SEAL_master_socket(struct socket_s *sock) {
 }
 
 void build_LARSA_master_socket(struct socket_s *sock) {
-	if(!is_cross(sock))
+	if(!is_enc(sock))
 		return;
 
 	printf("ERROR: you are calling function %s in untrusted environment which (1) is not supported and (2) has no sense\n", __func__);
@@ -48,7 +48,7 @@ void build_LARSA_master_socket(struct socket_s *sock) {
 }
 
 void build_SEAL_slave_socket(struct socket_s *sock) {
-	if(!is_cross(sock))
+	if(!is_enc(sock))
 		return;
 
 	printf("ERROR: you are calling function %s in untrusted environment which (1) is not supported and (2) has no sense\n", __func__);
@@ -56,7 +56,7 @@ void build_SEAL_slave_socket(struct socket_s *sock) {
 }
 
 void build_LARSA_slave_socket(struct socket_s *sock) {
-	if(!is_cross(sock))
+	if(!is_enc(sock))
 		return;
 
 	printf("ERROR: you are calling function %s in untrusted environment which (1) is not supported and (2) has no sense\n", __func__);
@@ -103,17 +103,87 @@ void aexit(int ret) {
 	ocall_exit(ret);
 }
 
-extern void (*pf[])(struct actor_s *);
+void replica(int destroy) {
+	printf("ERROR: you cannot call 'replica()' by an untrusted actor, die\n");while(1);
+}
+
+
+#include "enclave_cfg.h"
+
+extern int (*pf[])(struct actor_s *);
 extern int (*cf[])(struct actor_s *, queue *, queue *, queue *, queue *);
+
+//there is a problem with linking of low-level sgx functions like sgx_rijndael128GCM_decrypt, I do not have time to investigate
+static void * (* const volatile __memset_vp)(void *, int, size_t)
+    = (memset);
+
+#undef memset_s /* in case it was defined as a macro */
+
+int memset_s(void *s, size_t smax, int c, size_t n)
+{
+    int err = 0;
+
+    if (s == NULL) {
+        err = EINVAL;
+        goto out;
+    }
+
+    if (n > smax) {
+        err = EOVERFLOW;
+        n = smax;
+    }
+
+    /* Calling through a volatile pointer should never be optimised away. */
+    (*__memset_vp)(s, c, n);
+
+    out:
+    if (err == 0)
+        return 0;
+    else {
+        errno = err;
+        /* XXX call runtime-constraint handler */
+        return err;
+    }
+}
+
+int
+consttime_memequal(const void *b1, const void *b2, size_t len)
+{
+	const unsigned char *c1 = (const unsigned char *)b1, *c2 = (const unsigned char *) b2;
+	unsigned int res = 0;
+
+	while (len--)
+		res |= *c1++ ^ *c2++;
+
+	/*
+	 * Map 0 to 1 and [1, 256) to 0 using only constant-time
+	 * arithmetic.
+	 *
+	 * This is not simply `!res' because although many CPUs support
+	 * branchless conditional moves and many compilers will take
+	 * advantage of them, certain compilers generate branches on
+	 * certain CPUs for `!res'.
+	 */
+	return (1 & ((res - 1) >> 8));
+}
+
 
 #ifdef __cplusplus
 }
 #endif
 
-#define MAX_PRIVATE_BOXES	10 ///< maximum number of a private boxes
-static queue private_boxes[MAX_PRIVATE_BOXES]; ///< per enclave array of private boxes
-static queue private_pool; ///< per enclave private object pool
+
+
+
+#define MAX_PRIVATE_BOXES	10			///< maximum number of a private boxes
+static queue private_boxes[MAX_PRIVATE_BOXES];		///< per enclave array of private boxes
+static queue private_pool;				///< per enclave private object pool
+static struct socket_s sockets[MAX_SOCKETS] = {0};
 #define PPOOL_SIZE	10
+
+int priv_log[MAX_ACTORS][MAX_ACTORS];
+int pub_log[MAX_ACTORS][MAX_ACTORS];
+
 
 static int inited = 0;
 
@@ -137,6 +207,10 @@ int u_constructor(unsigned int id, unsigned int aid, void *aargs_p) {
 
 		for(i=0; i < MAX_PRIVATE_BOXES; i++) {
 			queue_init(&private_boxes[i]);
+#ifdef V2
+			private_boxes[i].id = i;
+			private_boxes[i].type = GLOBAL;
+#endif
 		}
 
 		inited = 1;
@@ -150,7 +224,15 @@ int u_constructor(unsigned int id, unsigned int aid, void *aargs_p) {
 	actors[aid].ps = (char *)malloc(PRIVATE_STORE_SIZE);
 	actors[aid].gboxes_v2 = aargs->gboxes_v2;
 	actors[aid].gpool_v2 = aargs->gpool_v2;
-
+//
+#ifdef V2
+	actors[aid].gboxes = aargs->gboxes;
+	actors[aid].gpool = aargs->gpool;
+	actors[aid].pboxes = private_boxes;
+	actors[aid].ppool = &private_pool;
+//
+	actors[aid].sockets = sockets;
+#endif
 	if(actors[aid].ctr)
 		ret = actors[aid].ctr(&actors[aid], aargs->gpool, &private_pool, aargs->gboxes, private_boxes);
 	else {
@@ -162,24 +244,27 @@ int u_constructor(unsigned int id, unsigned int aid, void *aargs_p) {
 	return ret;
 }
 
-int u_dispatcher(unsigned long int actors_mask, char leave) {
+int u_dispatcher(char leave) {
 	int i;
+	int ret = 0;
+
 	while(1) {
+		ret = 0;
 //place for a dispatch policy
 		for(i=0; i< MAX_ACTORS; i++) {
-			if(actors_mask & (1<<i)) {
+			if(ACTORS_MASK & (1<<i)) {
 				if(actors[i].body)
-					actors[i].body(&actors[i]);
+					ret |= actors[i].body(&actors[i]);
 				else {
 					printa("Intrusion detected: call for a non-existing consrtructor\n");
 					while(1);
 				}
 			}
 		}
-		if(leave)
+		if(leave || !ret)
 			break;
 	}
-	return 0;
+	return ret;
 }
 
 

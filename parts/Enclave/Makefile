@@ -1,9 +1,9 @@
-SGX_SDK ?= /path/to/the/sgxsdk
+#SGX_SDK ?= /path/to/the/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
 
-ifeq ($(SGX_SDK), /path/to/the/sgxsdk)
+ifeq ($(SGX_SDK),/path/to/the/sgxsdk)
     $(error "SGX_SDK is not set ")
 endif
 
@@ -37,6 +37,10 @@ else
 		SGX_COMMON_CFLAGS += -O2 -fdata-sections -ffunction-sections -Wl,--gc-sections
 endif
 
+Inc_libs := 
+Inc_objs := 
+include inc.mk
+
 ######## Enclave Settings ########
 
 ifneq ($(SGX_MODE), HW)
@@ -49,14 +53,14 @@ endif
 Crypto_Library_Name := sgx_tcrypto
 
 Enclave_Cpp_Files := Enclave.cpp
-Enclave_C_Files := EActors/stack.c EActors/node.c EActors/pack_memcpy.c EActors/pack_ctr.c EActors/pack_gcm.c EActors/socket.c EActors/ke_LARSA.c EActors/ke_SEAL.c EActors/cargo.c EActors/rsa.c EActors/errors.c EActors/base64.c EActors/factory.c
+Enclave_C_Files := EActors/node.c EActors/pack_memcpy.c EActors/pack_ctr.c EActors/pack_gcm.c EActors/socket.c EActors/ke_LARSA.c EActors/ke_SEAL.c EActors/cargo.c EActors/rsa.c EActors/errors.c EActors/base64.c EActors/factory.c EActors/eos.c EActors/eos_e.c EActors/cpio.c
 Enclave_Include_Paths := -I. -I../ -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport -IEActors
 
 Enclave_C_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths)
 Enclave_Cpp_Flags := $(Enclave_C_Flags)  -nostdinc++
 Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -lsgx_tstdcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
+	-Wl,--start-group -lsgx_tstdc  -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
 	-Wl,--defsym,__ImageBase=0
@@ -112,11 +116,7 @@ Enclave_t.o: Enclave_t.c
 	$(CXX) $(Enclave_Cpp_Flags) -c  $< -o $@
 	@echo "CXX  <=  $<"
 
-payload.o: payload.c
-	$(CC) $(Enclave_C_Flags) -c  $< -o $@
-	@echo "CXX  <=  $<"
-
-csum.o: csum.c
+%.o: %.c
 	$(CC) $(Enclave_C_Flags) -c  $< -o $@
 	@echo "CXX  <=  $<"
 
@@ -125,7 +125,7 @@ EActors/%.o: EActors/%.c
 	$(CC) $(Enclave_C_Flags) -c  $< -o $@
 	@echo "CC  <=  $<"
 
-$(Enclave_Name): Enclave_t.o $(Enclave_Cpp_Objects) $(Enclave_C_Objects) payload.o csum.o
+$(Enclave_Name): Enclave_t.o $(Enclave_Cpp_Objects) $(Enclave_C_Objects) payload.o csum.o $(Inc_libs) $(Inc_objs)
 	$(CXX)  $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -136,4 +136,4 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 .PHONY: clean
 
 clean:
-	@rm -f $(Enclave_Name) $(Signed_Enclave_Name) $(Enclave_C_Objects) $(Enclave_Cpp_Objects)  Enclave_t.*  payload.o csum.o
+	@rm -f $(Enclave_Name) $(Signed_Enclave_Name) $(Enclave_C_Objects) $(Enclave_Cpp_Objects)  Enclave_t.*  payload.o csum.o $(Inc_objs)

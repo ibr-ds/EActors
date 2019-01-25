@@ -14,7 +14,7 @@ struct fifo_pl {
 
 #define DEPTH	3
 
-void test(struct actor_s *self) {
+int test(struct actor_s *self) {
 	queue test;
 	node *tmp;
 	int i;
@@ -48,8 +48,7 @@ void test(struct actor_s *self) {
 		push_front(&test, tmp);
 	}
 
-
-	aexit();
+	return 0;
 }
 
 int test_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes) {

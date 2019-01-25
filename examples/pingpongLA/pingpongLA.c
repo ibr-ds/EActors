@@ -35,7 +35,7 @@ struct ps_struct {
 /**
 \brief A ping actor.
 */
-void aping(struct actor_s *self) {
+int aping(struct actor_s *self) {
 	struct ps_struct *ps = (struct ps_struct *) self->ps;
 
 	node *tmp = NULL;
@@ -80,7 +80,7 @@ void aping(struct actor_s *self) {
 		case 1:
 			tmp=pop_front(&ps->mbox[0]);
 			if(tmp==NULL)
-				return;
+				return 1;
 
 			msg = (struct mbox_struct *) tmp->payload;
 			printa("[PING] Got LA responce \n");
@@ -122,7 +122,7 @@ void aping(struct actor_s *self) {
 		case 3:
 			tmp=pop_front(&ps->mbox[0]);
 			if(tmp==NULL)
-				return;
+				return 1;
 
 			msg = (struct mbox_struct *) tmp->payload;
 			printa("[PING] Got ENC message '%c%c%c%c'\n", msg->buf[0], msg->buf[1],msg->buf[2], msg->buf[3]);
@@ -135,12 +135,13 @@ void aping(struct actor_s *self) {
 			break;
 	}
 
+	return 1;
 }
 
 /**
 \brief A pong actor.
 */
-void apong(struct actor_s *self) {
+int apong(struct actor_s *self) {
 	struct ps_struct *ps = (struct ps_struct *) self->ps;
 	char de_msg[128];
 
@@ -151,7 +152,7 @@ void apong(struct actor_s *self) {
 
 	node *tmp = pop_front(&ps->mbox[1]);
 	if(tmp==NULL)
-		return;
+		return 1;
 
 	struct mbox_struct *msg = (struct mbox_struct *) tmp->payload;
 
@@ -188,6 +189,8 @@ void apong(struct actor_s *self) {
 			push_back(&ps->mbox[0], tmp);
 			break;
 	}
+
+	return 1;
 }
 
 /**

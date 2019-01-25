@@ -1,5 +1,7 @@
 # *E*Actors is an actor-based programming framework for SGX.
 
+Version 1.1.0
+
 ## Overview:
 
 ### Why actors? 
@@ -22,12 +24,13 @@ The original paper is avaliable [here](https://www.ibr.cs.tu-bs.de/users/sartako
 
 ```
 @inproceedings{sartakov18eactors,
-    author = {Sartakov, Vasily A. and Stefan Brenner and Sonia Ben Mokhtar and Sara Bouchenak and Ga{\"e}l Thomas and R{\"u}diger Kapitza},
-    title = {\textit{E}{A}ctors: {F}ast and flexible trusted computing using {SGX}},
-    year = {2018},
-    publisher = {ACM},
-    booktitle = {19th International Middleware Conference Proceedings (Middleware'18)},
-}
+	author = {Sartakov, Vasily A. and Brenner, Stefan and Ben Mokhtar, Sonia and Bouchenak, Sara and Thomas, Ga\"{e}l and Kapitza, R\"{u}diger},
+	title = {\textit{E}Actors: Fast and Flexible Trusted Computing Using SGX},
+	booktitle = {Proceedings of the 19th International Middleware Conference},
+	year = {2018},
+	pages = {187--200},
+} 
+
 ```
 
 
@@ -39,18 +42,23 @@ The original paper is avaliable [here](https://www.ibr.cs.tu-bs.de/users/sartako
 
 ### Dependencies
 
-* Intel SGX SDK should be installed (tested with v1.9)
+* Intel SGX SDK should be installed (tested with v2.3)
 * SGX_SDK ?= /path/to/the/sgxsdk should be updated in parts/App/Makefile and parts/Enclave/Makefile or you can use SGX_SDK=/path/to/the/intel/sgxsdk ./run.sh inside the target directory
 
 ### Code-generation process
 
-Build.py generates the source tree from actor's sources and a configuration file (XML), which describes the deployment of actors.
+build.py generates the source tree from actor's sources and a configuration file (XML), which describes the deployment of actors.
 
 * tools/build.py file xml port sys:
     -  file: Actor source file
     - xml: Confguration file
-    - port: TCP/IP port (deprecated)
+    - port: TCP/IP port (default port for TCP/IP-based examples)
     - sys: source file with system actors
+
+The source directory should also include Enclave.config.xml, which defines heap/code size and some other SGX-related variables.
+Optionaly, the extras.cfg file can be provided, where C_FILES is a list of additional C files of the project, H_FILES is a list of headers while A_FILES is a list of libraries which need to be compiled into the project.
+See the [http](examples/http) example.
+
 
 Example:
 ```
@@ -94,7 +102,8 @@ The framework uses system actors for networking. systhreads_factory.cxx contains
 
 ### Storage
 
-The POS is deprecated and will be redeveloped. 
+The EOS is an object store. It includes API and the CLEANER actors. Any chunk of memory can be turned into the EOS. Can be trusted and untrusted, an untrusted EOS can be persistent or non-persisyent, as well as encrypted or non-encrypted.
+The EOS supports binary and string-based requests (putb/put).
 
 ### Examples
 

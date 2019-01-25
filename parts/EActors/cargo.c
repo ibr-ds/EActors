@@ -28,6 +28,10 @@ int need_repack(struct socket_s *sockA, struct socket_s *sockB) {
 	if( sizeof(sockA->pool->top->payload) != sizeof(sockA->pool->top->payload))
 		return 1;
 
+//this is a workaround for tripong2.xml. something does not work and we need to repack our cargos.
+	if(sockA->type != sockB->type)
+		return 1;
+
 	return 0;
 }
 
@@ -56,6 +60,10 @@ void return_cargo(struct cargo_s *cargo) {
 \return 0 if we got a message
 */
 int recv_cargo_ks(struct socket_s *sock, struct cargo_s *cargo, unsigned int size) {
+	if(sock->type == EMPTY) {
+		printa("Socket was not inited, die (%d)\n", __LINE__);while(1);
+	}
+
 	cargo->node = recv_pkg(sock, (char **)&cargo->data, size);
 	if(cargo->node == NULL)
 		return 1;
@@ -83,6 +91,10 @@ void send_cargo_ks(struct cargo_s *cargo, unsigned int size) {
 \note this routine decrypts whole payload
 */
 int recv_cargo(struct socket_s *sock, struct cargo_s *cargo) {
+	if(sock->type == EMPTY) {
+		printa("Socket was not inited, die (%d)\n", __LINE__);while(1);
+	}
+
 	cargo->node = recv_pkg(sock, (char **)&cargo->data, sizeof(sock->pool->top->payload));
 	if(cargo->node == NULL)
 		return 1;

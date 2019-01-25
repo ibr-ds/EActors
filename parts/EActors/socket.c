@@ -54,7 +54,7 @@ char *get_content(node *node) {
 \return pointer to a node object
 */
 node *alloc_pkg(struct socket_s *sock) {
-	return pop_front(sock->pool);
+	return nalloc(sock->pool);
 }
 
 /**
@@ -117,13 +117,15 @@ void send_pkg_unpacked(struct socket_s *sock, node *pkg) {
 */
 void send_pkg(struct socket_s *sock, node *pkg, char *src, int size) {
 	if(is_enc(sock))
-//		PACK(pkg->payload, src, size, sock->ctx, pkg->header.mac);
 		pack(sock, pkg->payload, src, size, sock->ctx, pkg->header.mac);
 
 	push_back(sock->out, pkg);
 
 	if(is_enc(sock))
 		free(src);
+#ifdef V2
+	sock->count++;
+#endif
 }
 
 /**
@@ -210,13 +212,18 @@ node *create_pkg(struct socket_s *sock, char **pl) {
 \param[in] type encryption type?
 */
 void setup_socket(struct socket_s *sock, int enc, int cross, enum etype type) {
-	if(sock->ctx != NULL)
-		return;
-
 	sock->enc = enc;
 	sock->cross = cross;
 	sock->type = type;
 	sock->mid = 0;
+
+	//todo: it is better to implement 'destroy'
+
+	if(sock->ctx != NULL)
+		return;
+
+	if(!sock->enc)
+		return;
 
 	switch(sock->type) {
 		case GCM:

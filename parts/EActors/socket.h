@@ -20,7 +20,8 @@ extern "C" {
 #endif
 
 enum etype {
-	MEMCPY = 0,
+	EMPTY = 0,
+	MEMCPY = 1,
 	CTR,
 	GCM,
 };
@@ -42,6 +43,12 @@ struct socket_s {
 	struct rsa_kp_struct rsa_slave;	///< A socket connects two participants always
 	int		state;		///< key-exchange phase
 
+#ifdef V2
+	unsigned long int	who;	///< who uses this socket
+	unsigned long int	whom;	///< with whom
+
+	int		count;		///< send statistic
+#endif
 	int 		mid;		///< This is a termporary workaround for LA. Master use this value to idenitfy the proper MEASURE of the slave
 };
 

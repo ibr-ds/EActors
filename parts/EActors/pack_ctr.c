@@ -50,13 +50,16 @@ void pack_ctr(char *dst, char *src, int size, struct ctx_ctr_s *ctx, char *mac) 
 
 	ippsAESInit(ctx->key, CTR_KEY_SIZE, ctx->pAES, ctx->ctxSize);
 
-	int ret = ippsAESEncryptCTR((const unsigned char*) src, (unsigned char*)dst, size, ctx->pAES, ctx->ctr0, 64);
+	char ctr[CTR_CTR_SIZE];
+	memcpy(ctr, ctx->ctr0, CTR_CTR_SIZE);
+
+	int ret = ippsAESEncryptCTR((const unsigned char*) src, (unsigned char*)dst, size, ctx->pAES, ctr, 64);
 
 	if(ret != ippStsNoErr) {
 		printa("pack does not work, error = %d\n", ret);while(1);
 	}
 
-	//I should update the counter but I do not do this because I use CTR as deterministic encryption for the POS
+	//I should update the counter but I do not do this because I use CTR the deterministic encryption for the EOS
 
 	ippsAESInit(0, CTR_KEY_SIZE, ctx->pAES, ctx->ctxSize);
 }
@@ -73,16 +76,17 @@ void pack_ctr(char *dst, char *src, int size, struct ctx_ctr_s *ctx, char *mac) 
 \note todo: should be CTR+MAC, but not just CTR 
 */
 void unpack_ctr(char *dst, char *src, int size, struct ctx_ctr_s *ctx, char *mac) {
-
-
 	ippsAESInit(ctx->key, CTR_KEY_SIZE, ctx->pAES, ctx->ctxSize);
 
-	int ret = ippsAESDecryptCTR((const unsigned char*) src, (unsigned char *) dst, size, ctx->pAES, ctx->ctr0, 64);
+	char ctr[CTR_CTR_SIZE];
+	memcpy(ctr, ctx->ctr0, CTR_CTR_SIZE);
+
+	int ret = ippsAESDecryptCTR((const unsigned char*) src, (unsigned char *) dst, size, ctx->pAES, ctr, 64);
 	if(ret != ippStsNoErr) {
 		printa("unpack does not work, error = %d\n", ret);while(1);
 	}
 
-	//I should update the counter but I do not do this because I use CTR as deterministic encryption for the POS
+	//I should update the counter but I do not do this because I use CTR the deterministic encryption for the EOS
 
 	ippsAESInit(0, CTR_KEY_SIZE, ctx->pAES, ctx->ctxSize);
 }

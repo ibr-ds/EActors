@@ -8,8 +8,10 @@
 extern void printa(const char *fmt, ...);
 
 
-void test(struct actor_s *self) {
+int test(struct actor_s *self) {
 	printa("hello world\n");
+
+	return 1;
 }
 
 int test_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, queue *pboxes) {

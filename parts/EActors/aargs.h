@@ -21,7 +21,11 @@ extern "C" {
 struct aargs_s {
 	queue *gpool;			///< the default node pool
 	queue *gboxes;			///< an array of boxes used for communications
-	struct storage_struct *gsp;	///< a virtual address where the POS is mapped
+	struct eos_struct *gsp;		///< a virtual address where the EOS is mapped
+#ifdef V2
+	queue *eboxes;			///< an array of boxes used for communication of trusted system actors
+	queue *my_box;			///< my personal box
+#endif
 	queue *gboxes_v2;		///< deprecated
 	queue *gpool_v2;		///< deprecated
 };
