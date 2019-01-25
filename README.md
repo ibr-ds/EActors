@@ -144,6 +144,25 @@ The EOS supports binary and string-based requests (putb/put).
     - Different vector lengths, number of parties
     - Uses LARSA
 
+* *E*Actors object store (EOS) (examples/eos)
+    - Tests put/putb/get/getb
+    - Encrypted and non-encrypted
+
+* HTTP (examples/http)
+    - Somewhat HTTP server with SSL support
+    - Spawns own network actors
+    - Supports multiple connections
+    - Keys, pages, certificates are inside an enclave
+
+* TCP-echo (examples/tcp_echo)
+    - Ping-pong over TCP/IP
+    - Uses default network actors
+
+* SSL-echo (examples/ssl_echo)
+    - Ping-pong over SSL
+    - Uses default network actors
+
+
 ### Documentation
 
 $doxygen doxyfile 
