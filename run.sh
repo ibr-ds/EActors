@@ -42,11 +42,6 @@ rm -rf ./build
 #cargo-based tripong, U-1-1
 #tools/build.py examples/tripong/tripong.c examples/tripong/tripong4.xml 0 parts/App/systhreads_factory.cxx
 
-#TCP/IP Echo, 1
-#tools/build.py examples/tcp_echo/tcp_echo.c examples/tcp_echo/tcp_echo-1.xml 5001 parts/App/systhreads_factory.cxx
-
-#SSL Echo, 1
-#tools/build.py examples/ssl_echo/ssl_echo.c examples/ssl_echo/ssl_echo-1.xml 5001 parts/App/systhreads_factory.cxx
 
 
 #network+cargo- based pingpong, 1--1
@@ -86,19 +81,14 @@ rm -rf ./build
 #single worker 1+7
 #tools/build.py examples/smc/smc.c examples/smc/smc0-8.xml 0 parts/App/systhreads_factory.cxx
 
+#TCP/IP Echo, 1
+#tools/build.py examples/tcp_echo/tcp_echo.c examples/tcp_echo/tcp_echo-1.xml 5001 parts/App/systhreads_factory.cxx
+
+#SSL Echo, 1
+#tools/build.py examples/ssl_echo/ssl_echo.c examples/ssl_echo/ssl_echo-1.xml 5001 parts/App/systhreads_factory.cxx
+
 #HTTP, 1
 tools/build.py examples/http/http.c examples/http/http1-1.xml 0 parts/App/systhreads_factory.cxx
 
 #EOS
 #tools/build.py examples/eos/eos.c examples/eos/eos-1.xml 0 parts/App/systhreads_factory.cxx
-
-
-#basic splitter, 1
-#tools/build.py examples/splitter/splitter.c examples/splitter/splitter-1.xml 0 parts/App/systhreads_factory.cxx
-
-#basic splitpong, many
-#tools/build.py examples/splitpong/splitpong.c examples/splitpong/splitpong-1.xml 0 parts/App/systhreads_factory.cxx
-
-#cargo-based splitpong2, many
-#tools/build.py examples/splitpong2/splitpong2.c examples/splitpong2/splitpong2-1.xml 0 parts/App/systhreads_factory.cxx
-

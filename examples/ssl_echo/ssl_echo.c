@@ -9,7 +9,7 @@ openssl s_client -connect localhost:5001
 and type something. This example requires system actors 'acceptor', 'writer', 'reader' and 'closer'.
 
 WARNING: This is a very, very scematic example, just to play with mbedtls. This example does not support multiple connections and very bed written.
-See the http example for a better design and application.
+Some stubs are not really work. See the http example, which has much better design.
 
 */
 
@@ -73,6 +73,7 @@ static void my_debug( void *ctx, int level, const char *file, int line, const ch
 
 int ret, len;
 mbedtls_net_context listen_fd, client_fd;
+unsigned char buf[1024];
 unsigned char buf2[1024];
 const char *pers = "ssl_server";
 
@@ -418,21 +419,21 @@ int server_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, 
                           mbedtls_test_srv_crt_len );
         if( ret != 0 ) {
 		mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned %d\n\n", ret );
-		goto exit;
+		while(1);
         }
 
 	ret = mbedtls_x509_crt_parse( &srvcert, (const unsigned char *) mbedtls_test_cas_pem,
                           mbedtls_test_cas_pem_len );
 	if( ret != 0 ) {
 		mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned %d\n\n", ret );
-		goto exit;
+		while(1);
 	}
 
 	ret =  mbedtls_pk_parse_key( &pkey, (const unsigned char *) mbedtls_test_srv_key,
                          mbedtls_test_srv_key_len, NULL, 0 );
 	if( ret != 0 ) {
 		mbedtls_printf( " failed\n  !  mbedtls_pk_parse_key returned %d\n\n", ret );
-		goto exit;
+		while(1);
 	}
 
 	mbedtls_printf( " ok\n" );
@@ -440,11 +441,11 @@ int server_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, 
 	/*
 	* 2. Setup the listening TCP socket
 	*/
-	mbedtls_printf( "  . Bind on https://localhost:4433/ ...\n" );
+	mbedtls_printf( "  . Bind on https://localhost:%d/ ...\n", TCP_PORT);
 
-	if( ( ret = mbedtls_net_bind( &listen_fd, NULL, "4433", MBEDTLS_NET_PROTO_TCP ) ) != 0 ) {
+	if( ( ret = mbedtls_net_bind( &listen_fd, NULL, "5001", MBEDTLS_NET_PROTO_TCP ) ) != 0 ) {
 		mbedtls_printf( " failed\n  ! mbedtls_net_bind returned %d\n\n", ret );
-		goto exit;
+		while(1);
 	}
 
 	mbedtls_printf( " ok\n" );
@@ -458,7 +459,7 @@ int server_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, 
                                (const unsigned char *) pers,
                                strlen( pers ) ) ) != 0 ) {
 		mbedtls_printf( " failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret );
-		goto exit;
+		while(1);
 	}
 
 	mbedtls_printf( " ok\n" );
@@ -473,7 +474,7 @@ int server_ctr(struct actor_s *self, queue *gpool, queue *ppool, queue *gboxes, 
                     MBEDTLS_SSL_TRANSPORT_STREAM,
                     MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 ) {
 		mbedtls_printf( " failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret );
-		goto exit;
+		while(1);
 	}
 
 	mbedtls_ssl_conf_rng( &conf, mbedtls_ctr_drbg_random, &ctr_drbg );

@@ -6,7 +6,6 @@
 //#include "worker.h"
 #include "socket.h"
 #include "packs.h"
-#include "stack.h"
 #include "actor.h"
 #include "ke_LARSA.h"
 #include "ke_SEAL.h"

@@ -80,7 +80,8 @@ void *accepter_thread(void *arg) {
 
 		int rc, on = 1;
 		if(tcp_sock->sockfd != -1) {
-#ifdef NON_BLOCKED
+#if 0
+//by default, the connection sockets are blocking, reading is non-blocking and send is blocking. non-blocking send has no sense and makes everything complicated.
 			rc = setsockopt(tcp_sock->sockfd, SOL_SOCKET,  SO_REUSEADDR, (char *)&on, sizeof(on));
 			if (rc < 0) {
 				perror("setsockopt() failed");
@@ -198,7 +199,7 @@ void *reader_thread(void *arg) {
 			printf("read sock is wrong\n");while(1);
 		}
 
-		to_read->size = read(to_read->sockfd, to_read->data, to_read->size);
+		to_read->size = recv(to_read->sockfd, to_read->data, to_read->size, MSG_DONTWAIT);
 #ifdef DEBUG_SOCKETS
 		if(to_read->size >= 0)
 			printf("Here is the message: %s, %d\n",to_read->data, to_read->size);

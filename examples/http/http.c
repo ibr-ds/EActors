@@ -451,8 +451,9 @@ int act_ssl(struct client_s *client, struct ssl_server_s *ssl_serv) {
 				return 1;
 			} 
 			do {
+#ifdef ADEBUG
 				printa("find file name '%s'\n", fname);
-
+#endif
 				if(fname[strlen(fname)-1] == '/') {
 					memcpy(&fname[strlen(fname)], "index.html", strlen("index.html"));
 					break;
@@ -470,7 +471,9 @@ int act_ssl(struct client_s *client, struct ssl_server_s *ssl_serv) {
 
 //one more check
 			if(fname[0] != '/') {
-				printa("wrong name %s\n", fname); while(1);
+				printa("wrong name %s\n", fname);
+				client->ssl_state = C_SSL_CLOSE;
+				return 1;
 			}
 //get file from cpio
 			file = cpio_get_file(dir_cpio, &fname[1], &size);
@@ -489,7 +492,9 @@ int act_ssl(struct client_s *client, struct ssl_server_s *ssl_serv) {
 				client->len = -1;
 				client->file = NULL;
 			} else {
+#ifdef ADEBUG
 				printa("Found file '%s' at %p from %p size %d\n", fname, file, dir_cpio, size);
+#endif
 				client->file = file;
 				client->len = size;
 				client->step = 0;

@@ -24,7 +24,6 @@ Mostly, this code spawns enclaves, workers and allocates shared objects.
 #include <sys/ioctl.h>
 
 #include "node.h"
-#include "stack.h"
 
 #include "config.h"
 
